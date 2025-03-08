@@ -21,6 +21,7 @@ def read_csv(entry_point):
         .withColumn("STATION", regexp_extract(input_file_name(), "[^/]+(?=\.csv)", 0))  # Extract station name from filename
         .withColumn("YEAR", regexp_extract(input_file_name(), "/(\d{4})/", 1))  # Extract the year from the file path
     )
+
     return df
 
 # Task 1 - placeholder function
