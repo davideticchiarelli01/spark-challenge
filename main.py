@@ -52,15 +52,15 @@ def task2(df):
 def task3(df):
 
 # Main block
-if __name__ == '__main__':
-    # Read the CSV files
-    df = read_csv(ENTRY_POINT)
+    if __name__ == '__main__':
+        # Read the CSV files
+        df = read_csv(ENTRY_POINT)
 
-    # Select specific columns: FILENAME, STATION, YEAR, LATITUDE, LONGITUDE, TMP, WND, REM
-    df_selected = df.select("FILENAME", "STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
+        # Select specific columns: FILENAME, STATION, YEAR, LATITUDE, LONGITUDE, TMP, WND, REM
+        df_selected = df.select("FILENAME", "STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
 
-    # Count the total number of rows in the selected dataframe
-    row_count = df_selected.count()
-    print(f"Total number of rows: {row_count}")  # Print the number of rows
-    task2(df)
-    task3(df)
+        # Count the total number of rows in the selected dataframe
+        row_count = df_selected.count()
+        print(f"Total number of rows: {row_count}")  # Print the number of rows
+        task2(df)
+        task3(df)
