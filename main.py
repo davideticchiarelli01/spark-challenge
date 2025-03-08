@@ -47,3 +47,4 @@ if __name__ == '__main__':
     # Count the total number of rows in the selected dataframe
     row_count = df_selected.count()
     print(f"Total number of rows: {row_count}")  # Print the number of rows
+    #edfefef
