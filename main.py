@@ -2,14 +2,17 @@ from pyspark.sql import SparkSession
 from pyspark.context import SparkContext
 from pyspark.sql.functions import input_file_name, regexp_extract
 from pyspark.sql import functions as F
+from pyspark.sql.functions import lit, bround, split, count
 
+import csv
+import os
 
 # Create the Spark context and Spark session
 sc = SparkContext.getOrCreate()
 spark = SparkSession(sc)
 
 # Entry point for the data files
-ENTRY_POINT = "file:///home/user/Downloads//BDAchallenge2425"
+ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
 
 # Function to read CSV files
 def read_csv(entry_point):
@@ -24,43 +27,44 @@ def read_csv(entry_point):
 
     return df
 
+def write_result(df):
+    df.show()
+
 # Task 1 - placeholder function
-def task1():
-    return 'ciao'
+def task1(df):
+    result = df.filter(
+                (df['LATITUDE'] >= 30) & (df['LATITUDE'] <= 60) &
+                (df['LONGITUDE'] >= -135) & (df['LONGITUDE'] <= -90)) \
+            .withColumn(
+                'TMP', bround(split(df['TMP'], ',')[0].cast('decimal(10, 1)') / 10, 1)) \
+            .groupBy('TMP') \
+            .agg(count('*').alias('OCC')) \
+            .orderBy('OCC', ascending=False) \
+            .withColumn('COORDS', lit('[(60,-135);(30,-90)]')) \
+            .limit(10)
+
+    write_result(result)
 
 # Task 2 - placeholder function
 def task2(df):
-    # Extract speed from column WND (5° element, index 4)
-    df_with_speed = df.withColumn("SPEED", F.split(df["WND"], ",").getItem(1))
+    result = df.withColumn("SPEED", split(df["WND"], ",").getItem(1)) \
+        .groupBy("SPEED", "STATION") \
+        .agg(count("*").alias("OCC")) \
+        .orderBy("SPEED") \
 
-    # Group by speed and station, and count how many times the station appears for each speed
-    station_count_by_speed = df_with_speed.groupBy("SPEED", "STATION").count()
-
-    # Sort the results by speed (SPEED) in ascending order
-    sorted_station_count_by_speed = station_count_by_speed.orderBy("SPEED")
-
-    # Show the results
-    sorted_station_count_by_speed.show()
-
-    # Save the results to a CSV file
-    # output_path = "/path/to/save/station_count_by_speed.csv"
-    # station_count_by_speed.write.option("header", "true").csv(output_path)
-
-    return station_count_by_speed
+    write_result(result)
 
 # Task 3 - placeholder function
 def task3(df):
+    pass  # Add logic for task 3
 
 # Main block
 if __name__ == '__main__':
     # Read the CSV files
     df = read_csv(ENTRY_POINT)
-
     # Select specific columns: FILENAME, STATION, YEAR, LATITUDE, LONGITUDE, TMP, WND, REM
     df_selected = df.select("FILENAME", "STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
 
-    # Count the total number of rows in the selected dataframe
-    row_count = df_selected.count()
-    print(f"Total number of rows: {row_count}")  # Print the number of rows
+    task1(df)
     task2(df)
     task3(df)
