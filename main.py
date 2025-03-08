@@ -3,6 +3,7 @@ from pyspark.context import SparkContext
 from pyspark.sql.functions import input_file_name, regexp_extract
 from pyspark.sql import functions as F
 from pyspark.sql.functions import lit, bround, split, count
+from pyspark.sql.window import Window
 
 import csv
 import os
@@ -41,29 +42,42 @@ def task1(df):
             .agg(count('*').alias('OCC')) \
             .orderBy('OCC', ascending=False) \
             .withColumn('COORDS', lit('[(60,-135);(30,-90)]')) \
-            .limit(10)
+            .limit(10) \
+            .select('COORDS', 'TMP', 'OCC')
 
     write_result(result)
 
 # Task 2 - placeholder function
 def task2(df):
-    result = df.withColumn("SPEED", split(df["WND"], ",").getItem(1)) \
+    windowSpec = Window.partitionBy("SPEED").orderBy(F.desc("OCC"))
+
+    grouped = df.withColumn("SPEED", split(df["WND"], ",").getItem(1)) \
         .groupBy("SPEED", "STATION") \
         .agg(count("*").alias("OCC")) \
-        .orderBy("SPEED") \
+        .withColumn("rank", F.rank().over(windowSpec)) \
+        .filter(F.col("rank") == 1) \
+        .drop("rank") \
+        .orderBy("SPEED")
 
-    write_result(result)
+    write_result(grouped)
+
+    # df.withColumn("SPEED", split(df["WND"], ",").getItem(1)) \
+    #     .groupBy("SPEED", "STATION") \
+    #     .agg(count("*").alias("OCC")) \
+    #     .orderBy("SPEED").show()
+
 
 # Task 3 - placeholder function
 def task3(df):
-    pass  # Add logic for task 3
+    df.createOrReplaceTempView("temp")
+    temp1 = spark.sql("SELECT * FROM temp WHERE REM LIKE '%HOURLY INCREMENTAL PRECIPITATION VALUES (IN)%' ORDER BY REM")
+    temp1.show()
+
 
 # Main block
 if __name__ == '__main__':
     # Read the CSV files
-    df = read_csv(ENTRY_POINT)
-    # Select specific columns: FILENAME, STATION, YEAR, LATITUDE, LONGITUDE, TMP, WND, REM
-    df_selected = df.select("FILENAME", "STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
+    df = read_csv(ENTRY_POINT).select("FILENAME", "STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
 
     task1(df)
     task2(df)
