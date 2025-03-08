@@ -25,15 +25,15 @@ def read_csv(entry_point):
     return df
 
 # Task 1 - placeholder function
-def task1():
+def task1(df):
     return 'ciao'
 
 # Task 2 - placeholder function
-def task2():
+def task2(df):
     return 'ciao'
 
 # Task 3 - placeholder function
-def task3():
+def task3(df):
     return 'ciao'
 
 # Main block
