@@ -63,7 +63,6 @@ if __name__ == '__main__':
     # Select specific columns: FILENAME, STATION, YEAR, LATITUDE, LONGITUDE, TMP, WND, REM
     df_selected = df.select("FILENAME", "STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
 
-
     # Count the total number of rows in the selected dataframe
     row_count = df_selected.count()
     print(f"Total number of rows: {row_count}")  # Print the number of rows
