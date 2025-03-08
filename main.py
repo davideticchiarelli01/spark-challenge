@@ -1,18 +1,49 @@
+from pyspark.sql import SparkSession
 from pyspark.context import SparkContext
-from pyspark.sql.session import SparkSession
+from pyspark.sql.functions import input_file_name, regexp_extract, split
+import csv
+import os
 
-# Creazione del contesto Spark e della sessione Spark
+# Create the Spark context and Spark session
 sc = SparkContext.getOrCreate()
 spark = SparkSession(sc)
 
+# Entry point for the data files
+ENTRY_POINT = "file:///home/user/Downloads//BDAchallenge2425"
 
-def print_hi(name):
-    print(f'Hi, {name}')  # Messaggio di benvenuto
+# Function to read CSV files
+def read_csv(entry_point):
+    # Read all CSV files under the given directory path
+    df = (
+        spark.read.option("header", "true")  # Read with headers
+        .csv(entry_point + "/*/*.csv")  # Read all CSV files recursively
+        .withColumn("FILENAME", input_file_name())  # Add a column with the filename
+        .withColumn("STATION", regexp_extract(input_file_name(), "[^/]+(?=\.csv)", 0))  # Extract station name from filename
+        .withColumn("YEAR", regexp_extract(input_file_name(), "/(\d{4})/", 1))  # Extract the year from the file path
+    )
+    return df
 
+# Task 1 - placeholder function
+def task1():
+    return 'ciao'
 
+# Task 2 - placeholder function
+def task2():
+    return 'ciao'
+
+# Task 3 - placeholder function
+def task3():
+    return 'ciao'
+
+# Main block
 if __name__ == '__main__':
-    text = sc.textFile('file:///home/user/Downloads/romeo_and_juliet.txt')
-    text.collect()
-    
-    # Chiude il contesto Spark
-    spark.stop()
+    # Read the CSV files
+    df = read_csv(ENTRY_POINT)
+
+    # Select specific columns: FILENAME, STATION, YEAR, LATITUDE, LONGITUDE, TMP, WND, REM
+    df_selected = df.select("FILENAME", "STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
+
+
+    # Count the total number of rows in the selected dataframe
+    row_count = df_selected.count()
+    print(f"Total number of rows: {row_count}")  # Print the number of rows
