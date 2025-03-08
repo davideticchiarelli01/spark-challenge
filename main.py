@@ -4,6 +4,7 @@ from pyspark.sql.functions import input_file_name, regexp_extract
 from pyspark.sql import functions as F
 from pyspark.sql.functions import lit, bround, split, count
 from pyspark.sql.window import Window
+from pprint import pprint
 
 import csv
 import os
@@ -15,18 +16,37 @@ spark = SparkSession(sc)
 # Entry point for the data files
 ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
 
-# Function to read CSV files
-def read_csv(entry_point):
-    # Read all CSV files under the given directory path
-    df = (
-        spark.read.option("header", "true")  # Read with headers
-        .csv(entry_point + "/*/*.csv")  # Read all CSV files recursively
-        .withColumn("FILENAME", input_file_name())  # Add a column with the filename
-        .withColumn("STATION", regexp_extract(input_file_name(), "[^/]+(?=\.csv)", 0))  # Extract station name from filename
-        .withColumn("YEAR", regexp_extract(input_file_name(), "/(\d{4})/", 1))  # Extract the year from the file path
-    )
 
-    return df
+def read_csv(entry_point):
+    file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/*/*.csv")
+    final_df = None
+
+    for file_path, _ in file_paths.collect():
+        df = (
+            spark.read.option("header", "true")
+            .csv(file_path)
+            .withColumn("STATION", regexp_extract(input_file_name(), "[^/]+(?=\.csv)", 0))
+            .withColumn("YEAR", regexp_extract(input_file_name(), "/(\d{4})/", 1))
+            .select("STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
+
+        )
+
+        if final_df is None:
+            final_df = df
+        else:
+            final_df = final_df.unionByName(df, allowMissingColumns=True)
+
+
+    # Read all CSV files under the given directory path
+    # df = (
+    #     spark.read.option("header", "true")  # Read with headers
+    #     .csv(entry_point + "/*/*.csv")  # Read all CSV files recursively
+    #     .withColumn("STATION",
+    #                 regexp_extract(input_file_name(), "[^/]+(?=\.csv)", 0))  # Extract station name from filename
+    #     .withColumn("YEAR", regexp_extract(input_file_name(), "/(\d{4})/", 1))  # Extract the year from the file path
+    # )
+
+    return final_df
 
 def write_result(df):
     df.show()
@@ -70,13 +90,14 @@ def task2(df):
 # Task 3 - placeholder function
 def task3(df):
     df.createOrReplaceTempView("temp")
-    temp1 = spark.sql("SELECT * FROM temp WHERE REM LIKE '%HOURLY%' ORDER BY REM")
+    temp1 = spark.sql("SELECT * FROM temp WHERE REM LIKE '%HOURLY%' ORDER BY REM DESC")
     temp1.show()
 
 # Main block
 if __name__ == '__main__':
+
     # Read the CSV files
-    df = read_csv(ENTRY_POINT).select("FILENAME", "STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
+    df = read_csv(ENTRY_POINT)
 
     task1(df)
     task2(df)
