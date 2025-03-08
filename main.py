@@ -16,26 +16,32 @@ spark = SparkSession(sc)
 # Entry point for the data files
 ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
 
+from pyspark.sql import functions as F
+from functools import reduce
+
 
 def read_csv(entry_point):
+    # Carica i percorsi dei file
     file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/*/*.csv")
-    final_df = None
 
-    for file_path, _ in file_paths.collect():
+    # Usa una lista per raccogliere i DataFrame
+    df_list = []
+
+    # Itera sui file senza usare collect()
+    for file_path, _ in file_paths.toLocalIterator():
+        # Carica i dati in un DataFrame
         df = (
             spark.read.option("header", "true")
             .csv(file_path)
-            .withColumn("STATION", regexp_extract(input_file_name(), "[^/]+(?=\.csv)", 0))
-            .withColumn("YEAR", regexp_extract(input_file_name(), "/(\d{4})/", 1))
+            .withColumn("STATION", F.regexp_extract(F.input_file_name(), "[^/]+(?=\.csv)", 0))
+            .withColumn("YEAR", F.regexp_extract(F.input_file_name(), "/(\d{4})/", 1))
             .select("STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
-
         )
+        # Aggiungi il DataFrame alla lista
+        df_list.append(df)
 
-        if final_df is None:
-            final_df = df
-        else:
-            final_df = final_df.unionByName(df, allowMissingColumns=True)
-
+    # Unisci tutti i DataFrame nella lista usando reduce
+    final_df = reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), df_list)
 
     # Read all CSV files under the given directory path
     # df = (
