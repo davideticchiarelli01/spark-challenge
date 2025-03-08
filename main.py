@@ -70,9 +70,8 @@ def task2(df):
 # Task 3 - placeholder function
 def task3(df):
     df.createOrReplaceTempView("temp")
-    temp1 = spark.sql("SELECT * FROM temp WHERE REM LIKE '%HOURLY INCREMENTAL PRECIPITATION VALUES (IN)%' ORDER BY REM")
+    temp1 = spark.sql("SELECT * FROM temp WHERE REM LIKE '%HOURLY%' ORDER BY REM")
     temp1.show()
-
 
 # Main block
 if __name__ == '__main__':
