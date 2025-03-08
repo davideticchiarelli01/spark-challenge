@@ -1,11 +1,8 @@
 from pyspark.sql import SparkSession
 from pyspark.context import SparkContext
-from pyspark.sql.functions import input_file_name, regexp_extract, split
+from pyspark.sql.functions import input_file_name, regexp_extract
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window
 
-import csv
-import os
 
 # Create the Spark context and Spark session
 sc = SparkContext.getOrCreate()
@@ -52,8 +49,7 @@ def task2(df):
     return station_count_by_speed
 
 # Task 3 - placeholder function
-def task3():
-    return 'ciao'
+def task3(df):
 
 # Main block
 if __name__ == '__main__':
@@ -67,3 +63,4 @@ if __name__ == '__main__':
     row_count = df_selected.count()
     print(f"Total number of rows: {row_count}")  # Print the number of rows
     task2(df)
+    task3(df)
