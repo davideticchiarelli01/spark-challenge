@@ -1,6 +1,9 @@
 from pyspark.sql import SparkSession
 from pyspark.context import SparkContext
 from pyspark.sql.functions import input_file_name, regexp_extract, split
+from pyspark.sql import functions as F
+from pyspark.sql.window import Window
+
 import csv
 import os
 
@@ -29,8 +32,24 @@ def task1():
     return 'ciao'
 
 # Task 2 - placeholder function
-def task2():
-    return 'ciao'
+def task2(df):
+    # Extract speed from column WND (5° element, index 4)
+    df_with_speed = df.withColumn("SPEED", F.split(df["WND"], ",").getItem(1))
+
+    # Group by speed and station, and count how many times the station appears for each speed
+    station_count_by_speed = df_with_speed.groupBy("SPEED", "STATION").count()
+
+    # Sort the results by speed (SPEED) in ascending order
+    sorted_station_count_by_speed = station_count_by_speed.orderBy("SPEED")
+
+    # Show the results
+    sorted_station_count_by_speed.show()
+
+    # Save the results to a CSV file
+   # output_path = "/path/to/save/station_count_by_speed.csv"
+   # station_count_by_speed.write.option("header", "true").csv(output_path)
+
+    return station_count_by_speed
 
 # Task 3 - placeholder function
 def task3():
@@ -48,4 +67,4 @@ if __name__ == '__main__':
     # Count the total number of rows in the selected dataframe
     row_count = df_selected.count()
     print(f"Total number of rows: {row_count}")  # Print the number of rows
-    #edfefef
+    task2(df)
