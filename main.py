@@ -68,6 +68,7 @@ def task1(df):
     #    result.select("COORDS", "TMP", "OCC") \
     #        .coalesce(1) \
     #    .write \
+    #    .mode("overwrite") \
     #        .csv(output_path, header=True)
     #    print(f"File salvato con successo in {output_path}")
     # except Exception as e:
@@ -96,6 +97,7 @@ def task2(df):
     #    grouped.select("SPEED", "STATION", "OCC") \
     #        .coalesce(1) \
     #    .write \
+    #    .mode("overwrite") \
     #        .csv(output_path, header=True)
     #    print(f"File salvato con successo in {output_path}")
     # except Exception as e:
@@ -151,6 +153,18 @@ def task3(df):
     )
 
     write_result(df_top_10_stazioni)
+
+    # Save the result into CVS file
+    # output_path = "file:///home/user/Downloads/task3.csv"
+    # try:
+    #    df_top_10_stazioni.select("YEAR", "STATION", "avg_precipitation") \
+    #        .coalesce(1) \
+    #    .write \
+    #    .mode("overwrite") \
+    #        .csv(output_path, header=True)
+    #    print(f"File salvato con successo in {output_path}")
+    # except Exception as e:
+    #    print(f"Errore nel salvataggio del file: {e}")
 
 
 # Main block
