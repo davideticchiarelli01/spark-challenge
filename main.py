@@ -98,8 +98,10 @@ def save_to_csv(df, filename):
     """Save a DataFrame into a CSV file."""
     try:
         df.write \
-          .mode("overwrite") \
-          .csv(OUTPUT_PATH, header=True)
+            .format("csv") \
+            .option("header", "true") \
+            .mode("overwrite") \
+            .save('file://{}/{}'.format(OUTPUT_PATH, filename))
         print(f"File salvato con successo in {OUTPUT_PATH}")
     except Exception as e:
         print(f"Errore nel salvataggio del file {filename}: {e}")
