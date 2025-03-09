@@ -126,7 +126,7 @@ def task1(df):
         .select("COORDS", "TMP", "OCC")
     )
 
-    write_result(result)
+    #write_result(result)
 
     save_to_csv(result, "task1")
 
@@ -134,17 +134,6 @@ def task1(df):
     elapsed_time = end_time - start_time  # Calcola il tempo trascorso
     print("All operations for the task1 have terminated in {:.2f} s.".format(elapsed_time))
 
-    # Save the result into CVS file
-    # output_path = "file:///home/user/Downloads/task1.csv"
-    # try:
-    #    result.select("COORDS", "TMP", "OCC") \
-    #        .coalesce(1) \
-    #    .write \
-    #    .mode("overwrite") \
-    #        .csv(output_path, header=True)
-    #    print(f"File salvato con successo in {output_path}")
-    # except Exception as e:
-    #    print(f"Errore nel salvataggio del file: {e}")
 
 
 def task2(df):
@@ -164,31 +153,13 @@ def task2(df):
         .orderBy("SPEED")
     )
 
-    write_result(grouped)
+    #write_result(grouped)
 
     save_to_csv(grouped, "task2")
 
     end_time = time.time()  # Registra il tempo di fine
     elapsed_time = end_time - start_time  # Calcola il tempo trascorso
     print("All operations for the task2 have terminated in {:.2f} s.".format(elapsed_time))
-
-    # Save the result into CVS file
-    # output_path = "file:///home/user/Downloads/task2.csv"
-    # try:
-    #    grouped.select("SPEED", "station", "OCC") \
-    #        .coalesce(1) \
-    #    .write \
-    #    .mode("overwrite") \
-    #        .csv(output_path, header=True)
-    #    print(f"File salvato con successo in {output_path}")
-    # except Exception as e:
-    #    print(f"Errore nel salvataggio del file: {e}")
-
-    # Old code
-    # df.withColumn("SPEED", split(df["WND"], ",").getItem(1)) \
-    #     .groupBy("SPEED", "station") \
-    #     .agg(count("*").alias("OCC")) \
-    #     .orderBy("SPEED").show()
 
 
 def task3(df):
@@ -236,25 +207,13 @@ def task3(df):
         .drop("rank")
     )
 
-    write_result(df_top_10_stazioni)
+    #write_result(df_top_10_stazioni)
 
     save_to_csv(df_top_10_stazioni, "task3")
 
     end_time = time.time()  # Registra il tempo di fine
     elapsed_time = end_time - start_time  # Calcola il tempo trascorso
     print("All operations for the task3 have terminated in {:.2f} s.".format(elapsed_time))
-
-    # Save the result into CVS file
-    # output_path = "file:///home/user/Downloads/task3.csv"
-    # try:
-    #    df_top_10_stazioni.select("year", "station", "avg_precipitation") \
-    #        .coalesce(1) \
-    #    .write \
-    #    .mode("overwrite") \
-    #        .csv(output_path, header=True)
-    #    print(f"File salvato con successo in {output_path}")
-    # except Exception as e:
-    #    print(f"Errore nel salvataggio del file: {e}")
 
 
 # Main block
