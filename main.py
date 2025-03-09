@@ -91,6 +91,19 @@ def write_result(df):
     df.show()
 
 
+def save_to_csv(df, filename):
+    """Save a DataFrame into a CSV file."""
+    output_path = f"file:///home/user/Downloads/{filename}.csv"
+    try:
+        df.coalesce(1) \
+          .write \
+          .mode("overwrite") \
+          .csv(output_path, header=True)
+        print(f"File salvato con successo in {output_path}")
+    except Exception as e:
+        print(f"Errore nel salvataggio del file {filename}: {e}")
+
+
 def task1(df):
     """Task 1: Filter by coordinates, process TMP column, and show the top 10 results."""
 
@@ -113,6 +126,8 @@ def task1(df):
     )
 
     write_result(result)
+
+    save_to_csv(result, "task1")
 
     end_time = time.time()  # Registra il tempo di fine
     elapsed_time = end_time - start_time  # Calcola il tempo trascorso
@@ -149,6 +164,8 @@ def task2(df):
     )
 
     write_result(grouped)
+
+    save_to_csv(grouped, "task2")
 
     end_time = time.time()  # Registra il tempo di fine
     elapsed_time = end_time - start_time  # Calcola il tempo trascorso
@@ -219,6 +236,8 @@ def task3(df):
     )
 
     write_result(df_top_10_stazioni)
+
+    save_to_csv(df_top_10_stazioni, "task3")
 
     end_time = time.time()  # Registra il tempo di fine
     elapsed_time = end_time - start_time  # Calcola il tempo trascorso
