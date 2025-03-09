@@ -1,13 +1,10 @@
 from pyspark.sql import SparkSession
 from pyspark.context import SparkContext
-from pyspark.sql.functions import udf
-from pyspark.sql.functions import aggregate
-from pyspark.sql.types import DoubleType
-from pyspark.sql.functions import input_file_name, regexp_extract
-from pyspark.sql.functions import lit, bround, split, count
+from pyspark.sql.functions import aggregate, lit, bround, split, count
 from pyspark.sql.window import Window
 from pyspark.sql import functions as F
 from functools import reduce
+import time
 
 import csv
 import os
@@ -16,18 +13,18 @@ import os
 sc = SparkContext.getOrCreate()
 spark = SparkSession(sc)
 
+
 # Entry point for the data files
 ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
 
 def read_csv(entry_point):
-    # Carica i percorsi dei file
+    # Load paths of files
     file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/*/*.csv")
-    # Usa una lista per raccogliere i DataFrame
     df_list = []
 
-    # Itera sui file senza usare collect()
+    # Iterate over files
     for file_path, _ in file_paths.toLocalIterator():
-        # Carica i dati in un DataFrame
+        # Load the data into a DataFrame
         df = (
             spark.read.option("header", "true")
             .csv(file_path)
@@ -35,10 +32,10 @@ def read_csv(entry_point):
             .withColumn("YEAR", F.regexp_extract(F.input_file_name(), "/(\d{4})/", 1))
             .select("STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
         )
-        # Aggiungi il DataFrame alla lista
+        #Add the DataFrame into a list
         df_list.append(df)
 
-    # Unisci tutti i DataFrame nella lista usando reduce
+    # Merge all the Dataframes from the list
     final_df = reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), df_list)
 
     # Read all CSV files under the given directory path
@@ -51,6 +48,10 @@ def read_csv(entry_point):
     # )
 
     return final_df
+
+
+def write_result(df):
+    df.show()
 
 # Task 1 - placeholder function
 def task1(df):
@@ -67,6 +68,22 @@ def task1(df):
             .limit(10) \
             .select('COORDS', 'TMP', 'OCC')
 
+    write_result(result)
+
+    # Save the result into CVS file
+    # output_path = "file:///home/user/Downloads/task1.csv"  # Modifica il percorso del file di output
+    ## Scrivi il DataFrame in un file CSV senza sovrascrivere
+    # try:
+    #    result.select("COORDS", "TMP", "OCC") \
+    #        .coalesce(1) \
+    #    .write \
+    #        .csv(output_path, header=True)
+    #    print(f"File salvato con successo in {output_path}")
+    # except Exception as e:
+    #    print(f"Errore nel salvataggio del file: {e}")
+
+
+
 
 # Task 2 - placeholder function
 def task2(df):
@@ -81,6 +98,19 @@ def task2(df):
         .orderBy("SPEED")
 
     write_result(grouped)
+
+    # Save the result into CVS file
+    # output_path = "file:///home/user/Downloads/task2.csv"  # Modifica il percorso del file di output
+    ## Scrivi il DataFrame in un file CSV senza sovrascrivere
+    # try:
+    #    grouped.select("SPEED", "STATION", "OCC") \
+    #        .coalesce(1) \
+    #    .write \
+    #        .csv(output_path, header=True)
+    #    print(f"File salvato con successo in {output_path}")
+    # except Exception as e:
+    #    print(f"Errore nel salvataggio del file: {e}")
+
 
     # df.withColumn("SPEED", split(df["WND"], ",").getItem(1)) \
     #     .groupBy("SPEED", "STATION") \
@@ -107,11 +137,11 @@ def task3(df):
     df = df.withColumn(
         "Average",
         F.when(
-            F.size("precipitation_values_list_numeric") == 0,  # Se la lista è vuota
-            F.lit(0.0)  # Assegna 0.0
+            F.size("precipitation_values_list_numeric") == 0,
+            F.lit(0.0)
         ).otherwise(
             F.aggregate("precipitation_values_list_numeric", F.lit(0.0), lambda acc, x: acc + x) /
-            F.size("precipitation_values_list_numeric")  # Calcola la media
+            F.size("precipitation_values_list_numeric")
         )
     )
 
@@ -127,10 +157,13 @@ def task3(df):
 
     df_top_10_stazioni = df_ordinato.withColumn("rank", F.row_number().over(finestraSpec)) \
         .filter(F.col("rank") <= 10)  # Seleziona solo le prime 10 stazioni per anno
-    df_top_10_stazioni.show()
 
-    # Save the result in CVS file
-    #output_path = "file:///home/user/Downloads/top_10_stations_per_year.csv"  # Modifica il percorso del file di output
+    df_top_10_stazioni = df_top_10_stazioni.drop("rank")
+
+    write_result(df_top_10_stazioni)
+
+    # Save the result into CVS file
+    #output_path = "file:///home/user/Downloads/task3.csv"  # Modifica il percorso del file di output
     ## Scrivi il DataFrame in un file CSV senza sovrascrivere
     #try:
     #    df_top_10_stazioni.select("YEAR", "STATION", "avg_precipitation") \
@@ -143,10 +176,13 @@ def task3(df):
 
 # Main block
 if __name__ == '__main__':
-
+    start_time = time.time()
     # Read the CSV files
     df = read_csv(ENTRY_POINT)
 
     #task1(df)
     #task2(df)
     task3(df)
+    end_time = time.time()  # Registra il tempo di fine
+    elapsed_time = end_time - start_time  # Calcola il tempo trascorso
+    print("All operations have terminated in {:.2f} s.".format(elapsed_time))
