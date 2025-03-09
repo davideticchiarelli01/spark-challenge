@@ -1,5 +1,8 @@
 from pyspark.sql import SparkSession
 from pyspark.context import SparkContext
+from pyspark.sql.functions import udf
+from pyspark.sql.functions import aggregate
+from pyspark.sql.types import DoubleType
 from pyspark.sql.functions import input_file_name, regexp_extract
 from pyspark.sql.functions import lit, bround, split, count
 from pyspark.sql.window import Window
@@ -88,6 +91,14 @@ def task2(df):
     #     .agg(count("*").alias("OCC")) \
     #     .orderBy("SPEED").show()
 
+# 1. Definire la funzione di somma
+def avg_list(values):
+    if values:
+        return sum(values)/24
+    else:
+        return 0.00
+
+avg_list_udf = udf(avg_list, DoubleType())
 
 # Task 3 - placeholder function
 def task3(df):
@@ -103,11 +114,33 @@ def task3(df):
 
     df = df.withColumn(
         "precipitation_values_list_numeric",
-        F.expr("TRANSFORM(precipitation_values_list, x -> IF(TRIM(x) = 'T', 0.00, TRIM(x) ))")
+        F.expr("TRANSFORM(precipitation_values_list, x -> IF(TRIM(x) = 'T', 0.00, CAST(TRIM(x) AS DOUBLE)))")
     )
 
-    # Mostra il DataFrame con le nuove colonne
-    df.select("precipitation_values_list_numeric").show(truncate=False)
+   #df = df.withColumn(
+   #    "precipitation_values_list_numeric",
+   #    F.when(
+   #        F.size(F.col("precipitation_values_list")) == 0,
+   #        F.array(*[F.lit(0.00)])
+   #    ).otherwise(
+   #        F.expr(
+   #            "TRANSFORM(precipitation_values_list, x -> IF(TRIM(x) = 'T', CAST(0.00 AS DOUBLE), CAST(TRIM(x) AS DOUBLE)))"
+   #        )
+   #    )
+   #)
+
+    df = df.withColumn(
+        "Average",
+        F.when(
+            F.size("precipitation_values_list_numeric") == 0,  # Se la lista è vuota
+            F.lit(0.0)  # Assegna 0.0
+        ).otherwise(
+            F.aggregate("precipitation_values_list_numeric", F.lit(0.0), lambda acc, x: acc + x) /
+            F.size("precipitation_values_list_numeric")  # Calcola la media
+        )
+    )
+
+    df.select("Average").show()
 
 # Main block
 if __name__ == '__main__':
@@ -115,6 +148,6 @@ if __name__ == '__main__':
     # Read the CSV files
     df = read_csv(ENTRY_POINT)
 
-    # task1(df)
-    # task2(df)
+    #task1(df)
+    #task2(df)
     task3(df)
