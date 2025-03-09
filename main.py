@@ -51,7 +51,7 @@ def get_df(directory_path):
     for d in dfs[1:]:
         df = df.unionByName(d, allowMissingColumns=True)
 
-    return df
+    return df.select(["station","year"] + COLUMNS)
 
 
 # def read_csv(entry_point):
@@ -87,6 +87,7 @@ def get_df(directory_path):
 
 def write_result(df):
     """Display the result."""
+
     df.show()
 
 
@@ -220,6 +221,8 @@ def task3(df):
 if __name__ == '__main__':
 
     df = get_df(ENTRY_POINT)
+
+    df.printSchema()
 
     task1(df)
     task2(df)
