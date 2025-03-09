@@ -1,40 +1,88 @@
 from pyspark.sql import SparkSession
 from pyspark.context import SparkContext
-from pyspark.sql.functions import aggregate, lit, bround, split, count
+from pyspark.sql.functions import aggregate, lit, bround, split, count, col
 from pyspark.sql.window import Window
 from pyspark.sql import functions as F
+from pyspark.sql.functions import input_file_name, regexp_extract
 from functools import reduce
-import time
+from time import time
 import csv
 import os
 
-# Create the Spark context and Spark session
 sc = SparkContext.getOrCreate()
 spark = SparkSession(sc)
 
-# Entry point for the data files
-ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
+ENTRY_POINT = "hdfs://localhost:9000/user/user/BDAchallenge2425"
+COLUMNS = ["LATITUDE", "LONGITUDE", "TMP", "WND", "REM"]
 
 
-def read_csv(entry_point):
-    """Read CSV files and process them into a unified DataFrame."""
-    file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/*/*.csv")
-    df_list = []
+def list_file_names(directory_path):
+    file_status_objects = sc._gateway.jvm.org.apache.hadoop.fs.FileSystem.get(sc._jsc.hadoopConfiguration()).listStatus(
+        sc._jvm.org.apache.hadoop.fs.Path(directory_path)
+    )
+    return sorted([str(file.getPath().getName()) for file in file_status_objects])
 
-    for file_path, _ in file_paths.toLocalIterator():
-        df = (
-            spark.read.option("header", "true")
-            .csv(file_path)
-            .withColumn("STATION", F.regexp_extract(F.input_file_name(), "[^/]+(?=\.csv)", 0))
-            .withColumn("YEAR", F.regexp_extract(F.input_file_name(), "/(\d{4})/", 1))
-            .select("STATION", "YEAR", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
-        )
-        df_list.append(df)
+def read_headers(directory_path):
+    headers = {}
+    for year in list_file_names(directory_path):
+        for station in list_file_names('{}/{}'.format(directory_path, year)):
+            path = '{}/{}/{}'.format(directory_path, year, station)
+            header = spark.read.option("header", "true").csv(path).columns
+            key = tuple(header.index(c) for c in COLUMNS)
+            headers[key] = headers.get(key, []) + [(year, station)]
+    return headers
 
-    # Merge all the DataFrames from the list
-    final_df = reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), df_list)
+def read_csv(csv_files=None):
+    return spark.read.format('csv') \
+        .option('header', 'true') \
+        .load(csv_files) \
+        .withColumn("station", F.regexp_extract(F.input_file_name(), "[^/]+(?=\.csv)", 0)) \
+        .withColumn("year", F.regexp_extract(F.input_file_name(), "/(\d{4})/", 1))
 
-    return final_df
+def get_df(directory_path):
+
+    headers = read_headers(directory_path)
+
+    dfs = []
+    for stations in headers.values():
+        files = ['{}/{}/{}'.format(directory_path, year, station) for year, station in stations]
+        dfs.append(read_csv(files))
+    df = dfs[0]
+    for d in dfs[1:]:
+        df = df.unionByName(d, allowMissingColumns=True)
+
+    return df
+
+
+# def read_csv(entry_point):
+#     """Read CSV files and process them into a unified DataFrame."""
+#     file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/*/*.csv")
+#     df_list = []
+#
+#     for file_path, _ in file_paths.toLocalIterator():
+#         df = (
+#             spark.read.option("header", "true")
+#             .csv(file_path)
+#             .withColumn("station", F.regexp_extract(F.input_file_name(), "[^/]+(?=\.csv)", 0))
+#             .withColumn("year", F.regexp_extract(F.input_file_name(), "/(\d{4})/", 1))
+#             .select("station", "year", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
+#         )
+#         df_list.append(df)
+#
+#     # Merge all the DataFrames from the list
+#     final_df = reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), df_list)
+#
+#     # Read all CSV files under the given directory path
+#     # final_df = (
+#     #     spark.read.option("header", "true")  # Read with headers
+#     #     .csv(entry_point + "/*/*.csv")  # Read all CSV files recursively
+#     #     .withColumn("FILENAME", input_file_name())  # Add a column with the filename
+#     #     .withColumn("station",
+#     #                 regexp_extract(input_file_name(), "[^/]+(?=\.csv)", 0))  # Extract station name from filename
+#     #     .withColumn("year", regexp_extract(input_file_name(), "/(\d{4})/", 1))  # Extract the year from the file path
+#     # )
+#
+#     return final_df
 
 
 def write_result(df):
@@ -81,7 +129,7 @@ def task2(df):
 
     grouped = (
         df.withColumn("SPEED", split(df["WND"], ",").getItem(1))
-        .groupBy("SPEED", "STATION")
+        .groupBy("SPEED", "station")
         .agg(count("*").alias("OCC"))
         .withColumn("rank", F.rank().over(window_spec))
         .filter(F.col("rank") == 1)
@@ -94,7 +142,7 @@ def task2(df):
     # Save the result into CVS file
     # output_path = "file:///home/user/Downloads/task2.csv"
     # try:
-    #    grouped.select("SPEED", "STATION", "OCC") \
+    #    grouped.select("SPEED", "station", "OCC") \
     #        .coalesce(1) \
     #    .write \
     #    .mode("overwrite") \
@@ -105,13 +153,14 @@ def task2(df):
 
     # Old code
     # df.withColumn("SPEED", split(df["WND"], ",").getItem(1)) \
-    #     .groupBy("SPEED", "STATION") \
+    #     .groupBy("SPEED", "station") \
     #     .agg(count("*").alias("OCC")) \
     #     .orderBy("SPEED").show()
 
 
 def task3(df):
     """Task 3: Process precipitation values and calculate the average per station per year."""
+
     df = df.withColumn(
         "precipitation_values",
         F.regexp_extract(df["REM"], r"HOURLY INCREMENTAL PRECIPITATION VALUES \(IN\):(.*)", 1)
@@ -138,13 +187,13 @@ def task3(df):
         )
     )
 
-    df_media_precipitazioni = df.groupBy("YEAR", "STATION").agg(
+    df_media_precipitazioni = df.groupBy("year", "station").agg(
         F.avg("Average").alias("avg_precipitation")
     )
 
-    df_ordinato = df_media_precipitazioni.orderBy("YEAR", "avg_precipitation")
+    df_ordinato = df_media_precipitazioni.orderBy("year", "avg_precipitation")
 
-    finestra_spec = Window.partitionBy("YEAR").orderBy("avg_precipitation")
+    finestra_spec = Window.partitionBy("year").orderBy("avg_precipitation")
 
     df_top_10_stazioni = (
         df_ordinato.withColumn("rank", F.row_number().over(finestra_spec))
@@ -157,7 +206,7 @@ def task3(df):
     # Save the result into CVS file
     # output_path = "file:///home/user/Downloads/task3.csv"
     # try:
-    #    df_top_10_stazioni.select("YEAR", "STATION", "avg_precipitation") \
+    #    df_top_10_stazioni.select("year", "station", "avg_precipitation") \
     #        .coalesce(1) \
     #    .write \
     #    .mode("overwrite") \
@@ -169,14 +218,10 @@ def task3(df):
 
 # Main block
 if __name__ == '__main__':
-    start_time = time.time()
-    # Read all CSV files
-    df = read_csv(ENTRY_POINT)
+
+    df = get_df(ENTRY_POINT)
 
     task1(df)
     task2(df)
     task3(df)
 
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print("All operations have terminated in {:.2f} s.".format(elapsed_time))
