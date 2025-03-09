@@ -5,7 +5,7 @@ from pyspark.sql.window import Window
 from pyspark.sql import functions as F
 from pyspark.sql.functions import input_file_name, regexp_extract
 from functools import reduce
-from time import time
+import time
 import csv
 import os
 
@@ -93,6 +93,9 @@ def write_result(df):
 
 def task1(df):
     """Task 1: Filter by coordinates, process TMP column, and show the top 10 results."""
+
+    start_time = time.time()
+
     result = (
         df.filter(
             (df["LATITUDE"] >= 30) & (df["LATITUDE"] <= 60) &
@@ -111,6 +114,10 @@ def task1(df):
 
     write_result(result)
 
+    end_time = time.time()  # Registra il tempo di fine
+    elapsed_time = end_time - start_time  # Calcola il tempo trascorso
+    print("All operations for the task1 have terminated in {:.2f} s.".format(elapsed_time))
+
     # Save the result into CVS file
     # output_path = "file:///home/user/Downloads/task1.csv"
     # try:
@@ -126,6 +133,9 @@ def task1(df):
 
 def task2(df):
     """Task 2: Find the most frequent station per wind speed."""
+
+    start_time = time.time()
+
     window_spec = Window.partitionBy("SPEED").orderBy(F.desc("OCC"))
 
     grouped = (
@@ -139,6 +149,10 @@ def task2(df):
     )
 
     write_result(grouped)
+
+    end_time = time.time()  # Registra il tempo di fine
+    elapsed_time = end_time - start_time  # Calcola il tempo trascorso
+    print("All operations for the task2 have terminated in {:.2f} s.".format(elapsed_time))
 
     # Save the result into CVS file
     # output_path = "file:///home/user/Downloads/task2.csv"
@@ -161,6 +175,8 @@ def task2(df):
 
 def task3(df):
     """Task 3: Process precipitation values and calculate the average per station per year."""
+
+    start_time = time.time()
 
     df = df.withColumn(
         "precipitation_values",
@@ -203,6 +219,10 @@ def task3(df):
     )
 
     write_result(df_top_10_stazioni)
+
+    end_time = time.time()  # Registra il tempo di fine
+    elapsed_time = end_time - start_time  # Calcola il tempo trascorso
+    print("All operations for the task3 have terminated in {:.2f} s.".format(elapsed_time))
 
     # Save the result into CVS file
     # output_path = "file:///home/user/Downloads/task3.csv"
