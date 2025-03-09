@@ -21,8 +21,7 @@ ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
 
 def read_csv(entry_point):
     # Carica i percorsi dei file
-    file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/2000/99999994988.csv")
-
+    file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/*/*.csv")
     # Usa una lista per raccogliere i DataFrame
     df_list = []
 
@@ -52,9 +51,6 @@ def read_csv(entry_point):
     # )
 
     return final_df
-
-def write_result(df):
-    df.show()
 
 # Task 1 - placeholder function
 def task1(df):
@@ -91,15 +87,6 @@ def task2(df):
     #     .agg(count("*").alias("OCC")) \
     #     .orderBy("SPEED").show()
 
-# 1. Definire la funzione di somma
-def avg_list(values):
-    if values:
-        return sum(values)/24
-    else:
-        return 0.00
-
-avg_list_udf = udf(avg_list, DoubleType())
-
 # Task 3 - placeholder function
 def task3(df):
     df = df.withColumn(
@@ -117,18 +104,6 @@ def task3(df):
         F.expr("TRANSFORM(precipitation_values_list, x -> IF(TRIM(x) = 'T', 0.00, CAST(TRIM(x) AS DOUBLE)))")
     )
 
-   #df = df.withColumn(
-   #    "precipitation_values_list_numeric",
-   #    F.when(
-   #        F.size(F.col("precipitation_values_list")) == 0,
-   #        F.array(*[F.lit(0.00)])
-   #    ).otherwise(
-   #        F.expr(
-   #            "TRANSFORM(precipitation_values_list, x -> IF(TRIM(x) = 'T', CAST(0.00 AS DOUBLE), CAST(TRIM(x) AS DOUBLE)))"
-   #        )
-   #    )
-   #)
-
     df = df.withColumn(
         "Average",
         F.when(
@@ -140,7 +115,31 @@ def task3(df):
         )
     )
 
-    df.select("Average").show()
+    df_media_precipitazioni = df.groupBy("YEAR", "STATION").agg(
+        F.avg("Average").alias("avg_precipitation")
+    )
+
+    # Step 2: Ordina per anno e precipitazione media in ordine crescente
+    df_ordinato = df_media_precipitazioni.orderBy("YEAR", "avg_precipitation")
+
+    # Step 3: Usa le funzioni di finestra per ottenere le prime 10 stazioni per ogni anno
+    finestraSpec = Window.partitionBy("YEAR").orderBy("avg_precipitation")
+
+    df_top_10_stazioni = df_ordinato.withColumn("rank", F.row_number().over(finestraSpec)) \
+        .filter(F.col("rank") <= 10)  # Seleziona solo le prime 10 stazioni per anno
+    df_top_10_stazioni.show()
+
+    # Save the result in CVS file
+    #output_path = "file:///home/user/Downloads/top_10_stations_per_year.csv"  # Modifica il percorso del file di output
+    ## Scrivi il DataFrame in un file CSV senza sovrascrivere
+    #try:
+    #    df_top_10_stazioni.select("YEAR", "STATION", "avg_precipitation") \
+    #        .coalesce(1) \
+    #    .write \
+    #        .csv(output_path, header=True)
+    #    print(f"File salvato con successo in {output_path}")
+    #except Exception as e:
+    #    print(f"Errore nel salvataggio del file: {e}")
 
 # Main block
 if __name__ == '__main__':
