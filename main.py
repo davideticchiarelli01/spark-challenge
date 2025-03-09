@@ -222,8 +222,6 @@ if __name__ == '__main__':
 
     df = get_df(ENTRY_POINT)
 
-    df.printSchema()
-
     task1(df)
     task2(df)
     task3(df)
