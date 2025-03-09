@@ -1,10 +1,10 @@
 from pyspark.sql import SparkSession
 from pyspark.context import SparkContext
 from pyspark.sql.functions import input_file_name, regexp_extract
-from pyspark.sql import functions as F
 from pyspark.sql.functions import lit, bround, split, count
 from pyspark.sql.window import Window
-from pprint import pprint
+from pyspark.sql import functions as F
+from functools import reduce
 
 import csv
 import os
@@ -16,13 +16,9 @@ spark = SparkSession(sc)
 # Entry point for the data files
 ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
 
-from pyspark.sql import functions as F
-from functools import reduce
-
-
 def read_csv(entry_point):
     # Carica i percorsi dei file
-    file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/*/*.csv")
+    file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/2000/99999994988.csv")
 
     # Usa una lista per raccogliere i DataFrame
     df_list = []
@@ -59,6 +55,7 @@ def write_result(df):
 
 # Task 1 - placeholder function
 def task1(df):
+
     result = df.filter(
                 (df['LATITUDE'] >= 30) & (df['LATITUDE'] <= 60) &
                 (df['LONGITUDE'] >= -135) & (df['LONGITUDE'] <= -90)) \
@@ -71,7 +68,6 @@ def task1(df):
             .limit(10) \
             .select('COORDS', 'TMP', 'OCC')
 
-    write_result(result)
 
 # Task 2 - placeholder function
 def task2(df):
@@ -95,9 +91,23 @@ def task2(df):
 
 # Task 3 - placeholder function
 def task3(df):
-    df.createOrReplaceTempView("temp")
-    temp1 = spark.sql("SELECT * FROM temp WHERE REM LIKE '%HOURLY%' ORDER BY REM DESC")
-    temp1.show()
+    df = df.withColumn(
+        "precipitation_values",
+        F.regexp_extract(df["REM"], r"HOURLY INCREMENTAL PRECIPITATION VALUES \(IN\):(.*)", 1)
+    )
+
+    df = df.withColumn(
+        "precipitation_values_list",
+        F.expr("FILTER(SPLIT(precipitation_values, '  '), x -> x != '' )")
+    )
+
+    df = df.withColumn(
+        "precipitation_values_list_numeric",
+        F.expr("TRANSFORM(precipitation_values_list, x -> IF(TRIM(x) = 'T', 0.00, TRIM(x) ))")
+    )
+
+    # Mostra il DataFrame con le nuove colonne
+    df.select("precipitation_values_list_numeric").show(truncate=False)
 
 # Main block
 if __name__ == '__main__':
@@ -105,6 +115,6 @@ if __name__ == '__main__':
     # Read the CSV files
     df = read_csv(ENTRY_POINT)
 
-    task1(df)
-    task2(df)
+    # task1(df)
+    # task2(df)
     task3(df)
