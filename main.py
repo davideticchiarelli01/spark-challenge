@@ -131,8 +131,8 @@ def task1(df):
 
     save_to_csv(result, "task1")
 
-    end_time = time.time()  # Registra il tempo di fine
-    elapsed_time = end_time - start_time  # Calcola il tempo trascorso
+    end_time = time.time()
+    elapsed_time = end_time - start_time
     print("All operations for the task1 have terminated in {:.2f} s.".format(elapsed_time))
 
 
@@ -158,8 +158,8 @@ def task2(df):
 
     save_to_csv(grouped, "task2")
 
-    end_time = time.time()  # Registra il tempo di fine
-    elapsed_time = end_time - start_time  # Calcola il tempo trascorso
+    end_time = time.time()
+    elapsed_time = end_time - start_time
     print("All operations for the task2 have terminated in {:.2f} s.".format(elapsed_time))
 
 
@@ -167,6 +167,8 @@ def task3(df):
     """Task 3: Process precipitation values and calculate the average per station per year."""
 
     start_time = time.time()
+
+    df = df.filter(F.col("REM").contains("HOURLY INCREMENTAL PRECIPITATION VALUES (IN):"))
 
     df = df.withColumn(
         "precipitation_values",
@@ -188,9 +190,7 @@ def task3(df):
             F.aggregate("precipitation_values_list_numeric", F.lit(0.0), lambda acc, x: acc + x) /F.size("precipitation_values_list_numeric")
     )
 
-    df_filtered = df.filter(F.col("Average").isNotNull())
-
-    df_media_precipitazioni = df_filtered.groupBy("year", "station").agg(
+    df_media_precipitazioni = df.groupBy("year", "station").agg(
         F.avg("Average").alias("avg_precipitation")
     )
 
@@ -199,17 +199,18 @@ def task3(df):
     finestra_spec = Window.partitionBy("year").orderBy("avg_precipitation")
 
     df_top_10_stazioni = (
-        df_ordinato.withColumn("rank", F.row_number().over(finestra_spec))
+        df_ordinato.withColumn("rank", F.dense_rank().over(finestra_spec))
         .filter(F.col("rank") <= 10)
         .drop("rank")
+        .limit(10)
     )
 
     #write_result(df_top_10_stazioni)
 
     save_to_csv(df_top_10_stazioni, "task3")
 
-    end_time = time.time()  # Registra il tempo di fine
-    elapsed_time = end_time - start_time  # Calcola il tempo trascorso
+    end_time = time.time()
+    elapsed_time = end_time - start_time
     print("All operations for the task3 have terminated in {:.2f} s.".format(elapsed_time))
 
 
