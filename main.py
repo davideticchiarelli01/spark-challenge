@@ -7,15 +7,14 @@ from pyspark.sql.functions import input_file_name, regexp_extract
 from functools import reduce
 import time
 import csv
-import os
 
 sc = SparkContext.getOrCreate()
 spark = SparkSession(sc)
 
 #ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
 ENTRY_POINT = "hdfs://localhost:9000/user/user/BDAchallenge2425"
-#OUTPUT_PATH = "/home/user/Downloads"
-OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
+OUTPUT_PATH = "/home/user/Downloads"
+#OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
 COLUMNS = ["LATITUDE", "LONGITUDE", "TMP", "WND", "REM"]
 
 
@@ -186,16 +185,12 @@ def task3(df):
 
     df = df.withColumn(
         "Average",
-        F.when(
-            F.size("precipitation_values_list_numeric") == 0,
-            F.lit(0.0)
-        ).otherwise(
-            F.aggregate("precipitation_values_list_numeric", F.lit(0.0), lambda acc, x: acc + x) /
-            F.size("precipitation_values_list_numeric")
-        )
+            F.aggregate("precipitation_values_list_numeric", F.lit(0.0), lambda acc, x: acc + x) /F.size("precipitation_values_list_numeric")
     )
 
-    df_media_precipitazioni = df.groupBy("year", "station").agg(
+    df_filtered = df.filter(F.col("Average").isNotNull())
+
+    df_media_precipitazioni = df_filtered.groupBy("year", "station").agg(
         F.avg("Average").alias("avg_precipitation")
     )
 
