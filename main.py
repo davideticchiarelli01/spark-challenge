@@ -13,8 +13,8 @@ spark = SparkSession(sc)
 
 #ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
 ENTRY_POINT = "hdfs://localhost:9000/user/user/BDAchallenge2425"
-OUTPUT_PATH = "/home/user/Downloads"
-#OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
+#OUTPUT_PATH = "/home/user/Downloads"
+OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
 COLUMNS = ["LATITUDE", "LONGITUDE", "TMP", "WND", "REM"]
 
 
