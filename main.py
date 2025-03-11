@@ -116,7 +116,7 @@ def task1(df):
 
     start_time = time.time()
 
-    df = (
+    result = (
         df.filter(
             (df["LATITUDE"].cast("float") >= 30) &
             (df["LATITUDE"].cast("float") <= 60) &
