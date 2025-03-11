@@ -11,10 +11,12 @@ import csv
 sc = SparkContext.getOrCreate()
 spark = SparkSession(sc)
 
-#ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
-ENTRY_POINT = "hdfs://localhost:9000/user/user/BDAchallenge2425"
-OUTPUT_PATH = "/home/user/Downloads"
-#OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
+ENTRY_POINT = "hdfs:///user/amircoli/BDAchallenge2324"
+OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
+
+#ENTRY_POINT = "hdfs://localhost:9000/user/user/BDAchallenge2425"
+#OUTPUT_PATH = "/home/user/Downloads"
+
 COLUMNS = ["LATITUDE", "LONGITUDE", "TMP", "WND", "REM"]
 
 
@@ -60,7 +62,7 @@ def get_df(directory_path):
 
     return df.select(["station","year"] + COLUMNS)
 
-
+# alternative solution that reads files individually and performs UnionByName
 # def read_csv(entry_point):
 #    """Read CSV files and process them into a unified DataFrame."""
 #    file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/*/*.csv")
@@ -94,7 +96,6 @@ def get_df(directory_path):
 
 def write_result(df):
     """Display the result."""
-
     df.show()
 
 
@@ -217,11 +218,11 @@ if __name__ == '__main__':
 
     df = get_df(ENTRY_POINT)
 
-    #df = read_csv(ENTRY_POINT)
 
-    #caching operations to improve time performance
     start_time = time.time()
-    df.cache()
+    # Cache the DataFrame to improve performance
+    df = df.cache()
+    # Force caching by triggering an action
     df.first()
     end_time = time.time()
     elapsed_time = end_time - start_time
