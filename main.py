@@ -13,8 +13,8 @@ spark = SparkSession(sc)
 
 #ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
 ENTRY_POINT = "hdfs://localhost:9000/user/user/BDAchallenge2425"
-OUTPUT_PATH = "/home/user/Downloads"
-#OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
+#OUTPUT_PATH = "/home/user/Downloads"
+OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
 COLUMNS = ["LATITUDE", "LONGITUDE", "TMP", "WND", "REM"]
 
 
@@ -132,9 +132,9 @@ def task1(df):
         .select("COORDS", "TMP", "OCC")
     )
 
-    #write_result(result)
-
     save_to_csv(result, "task1")
+
+    # write_result(result)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -175,20 +175,12 @@ def task3(df):
 
     df = df.filter(F.col("REM").contains("HOURLY INCREMENTAL PRECIPITATION VALUES (IN):"))
 
-    df = df.withColumn(
-        "precipitation_values",
-        F.regexp_extract(df["REM"], r"HOURLY INCREMENTAL PRECIPITATION VALUES \(IN\):(.*)", 1)
-    )
-
-    df = df.withColumn(
-        "precipitation_values_list",
-        F.expr("FILTER(SPLIT(precipitation_values, '  '), x -> x != '' )")
-    )
-
-    df = df.withColumn(
-        "precipitation_values_list_numeric",
-        F.expr("TRANSFORM(precipitation_values_list, x -> IF(TRIM(x) = 'T', 0.00, CAST(TRIM(x) AS DOUBLE)))")
-    )
+    df = df.withColumns({
+        "precipitation_values": F.regexp_extract(df["REM"], r"HOURLY INCREMENTAL PRECIPITATION VALUES \(IN\):(.*)", 1),
+        "precipitation_values_list": F.expr("FILTER(SPLIT(precipitation_values, '  '), x -> x != '' )"),
+        "precipitation_values_list_numeric": F.expr(
+            "TRANSFORM(precipitation_values_list, x -> IF(TRIM(x) = 'T', 0.00, CAST(TRIM(x) AS DOUBLE)))")
+    })
 
     df = df.withColumn(
         "Average",
@@ -204,10 +196,9 @@ def task3(df):
     finestra_spec = Window.partitionBy("year").orderBy("avg_precipitation")
 
     df_top_10_stazioni = (
-        df_ordinato.withColumn("rank", F.dense_rank().over(finestra_spec))
+        df_ordinato.withColumn("rank", F.row_number().over(finestra_spec))
         .filter(F.col("rank") <= 10)
         .drop("rank")
-        .limit(10)
     )
 
     #write_result(df_top_10_stazioni)
