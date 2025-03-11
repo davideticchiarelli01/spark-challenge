@@ -13,8 +13,8 @@ spark = SparkSession(sc)
 
 #ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
 ENTRY_POINT = "hdfs://localhost:9000/user/user/BDAchallenge2425"
-#OUTPUT_PATH = "/home/user/Downloads"
-OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
+OUTPUT_PATH = "/home/user/Downloads"
+#OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
 COLUMNS = ["LATITUDE", "LONGITUDE", "TMP", "WND", "REM"]
 
 
@@ -42,6 +42,7 @@ def read_csv(csv_files=None):
         .withColumn("year", F.regexp_extract(F.input_file_name(), "/(\d{4})/", 1))
 
 def get_df(directory_path):
+    start_time = time.time()
 
     headers = read_headers(directory_path)
 
@@ -52,6 +53,10 @@ def get_df(directory_path):
     df = dfs[0]
     for d in dfs[1:]:
         df = df.unionByName(d, allowMissingColumns=True)
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print("\nAll loading operations have terminated in {:.2f} s.\n".format(elapsed_time))
 
     return df.select(["station","year"] + COLUMNS)
 
@@ -101,9 +106,9 @@ def save_to_csv(df, filename):
             .option("header", "true") \
             .mode("overwrite") \
             .save('file://{}/{}'.format(OUTPUT_PATH, filename))
-        print(f"File salvato con successo in {OUTPUT_PATH}")
+        print(f"File salvato con successo in {OUTPUT_PATH}\n")
     except Exception as e:
-        print(f"Errore nel salvataggio del file {filename}: {e}")
+        print(f"Errore nel salvataggio del file {filename}: {e}\n")
 
 
 def task1(df):
@@ -133,7 +138,7 @@ def task1(df):
 
     end_time = time.time()
     elapsed_time = end_time - start_time
-    print("All operations for the task1 have terminated in {:.2f} s.".format(elapsed_time))
+    print("All operations for the task1 have terminated in {:.2f} s.\n\n".format(elapsed_time))
 
 
 
@@ -160,7 +165,7 @@ def task2(df):
 
     end_time = time.time()
     elapsed_time = end_time - start_time
-    print("All operations for the task2 have terminated in {:.2f} s.".format(elapsed_time))
+    print("All operations for the task2 have terminated in {:.2f} s.\n\n".format(elapsed_time))
 
 
 def task3(df):
@@ -211,7 +216,7 @@ def task3(df):
 
     end_time = time.time()
     elapsed_time = end_time - start_time
-    print("All operations for the task3 have terminated in {:.2f} s.".format(elapsed_time))
+    print("All operations for the task3 have terminated in {:.2f} s.\n\n".format(elapsed_time))
 
 
 # Main block
@@ -221,7 +226,16 @@ if __name__ == '__main__':
 
     #df = read_csv(ENTRY_POINT)
 
+    #caching operations to improve time performance
+    start_time = time.time()
+    df.cache()
+    df.first()
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print("All caching operations have terminated in {:.2f} s.\n\n".format(elapsed_time))
+    
+
     task1(df)
     task2(df)
     task3(df)
-
+ 
