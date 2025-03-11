@@ -11,8 +11,8 @@ import csv
 sc = SparkContext.getOrCreate()
 spark = SparkSession(sc)
 
-ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
-#ENTRY_POINT = "hdfs://localhost:9000/user/user/BDAchallenge2425"
+#ENTRY_POINT = "file:///home/user/Downloads/BDAchallenge2425"
+ENTRY_POINT = "hdfs://localhost:9000/user/user/BDAchallenge2425"
 OUTPUT_PATH = "/home/user/Downloads"
 #OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
 COLUMNS = ["LATITUDE", "LONGITUDE", "TMP", "WND", "REM"]
@@ -61,35 +61,35 @@ def get_df(directory_path):
     return df.select(["station","year"] + COLUMNS)
 
 
-def read_csv(entry_point):
-   """Read CSV files and process them into a unified DataFrame."""
-   file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/*/*.csv")
-   df_list = []
-
-   for file_path, _ in file_paths.toLocalIterator():
-       df = (
-           spark.read.option("header", "true")
-           .csv(file_path)
-           .withColumn("station", F.regexp_extract(F.input_file_name(), "[^/]+(?=\.csv)", 0))
-           .withColumn("year", F.regexp_extract(F.input_file_name(), "/(\d{4})/", 1))
-           .select("station", "year", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
-       )
-       df_list.append(df)
-
-   # Merge all the DataFrames from the list
-   final_df = reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), df_list)
-
-   # Read all CSV files under the given directory path
-   # final_df = (
-   #     spark.read.option("header", "true")  # Read with headers
-   #     .csv(entry_point + "/*/*.csv")  # Read all CSV files recursively
-   #     .withColumn("FILENAME", input_file_name())  # Add a column with the filename
-   #     .withColumn("station",
-   #                 regexp_extract(input_file_name(), "[^/]+(?=\.csv)", 0))  # Extract station name from filename
-   #     .withColumn("year", regexp_extract(input_file_name(), "/(\d{4})/", 1))  # Extract the year from the file path
-   # )
-
-   return final_df
+# def read_csv(entry_point):
+#    """Read CSV files and process them into a unified DataFrame."""
+#    file_paths = spark.sparkContext.wholeTextFiles(entry_point + "/*/*.csv")
+#    df_list = []
+#
+#    for file_path, _ in file_paths.toLocalIterator():
+#        df = (
+#            spark.read.option("header", "true")
+#            .csv(file_path)
+#            .withColumn("station", F.regexp_extract(F.input_file_name(), "[^/]+(?=\.csv)", 0))
+#            .withColumn("year", F.regexp_extract(F.input_file_name(), "/(\d{4})/", 1))
+#            .select("station", "year", "LATITUDE", "LONGITUDE", "TMP", "WND", "REM")
+#        )
+#        df_list.append(df)
+#
+#    # Merge all the DataFrames from the list
+#    final_df = reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), df_list)
+#
+#    # Read all CSV files under the given directory path
+#    # final_df = (
+#    #     spark.read.option("header", "true")  # Read with headers
+#    #     .csv(entry_point + "/*/*.csv")  # Read all CSV files recursively
+#    #     .withColumn("FILENAME", input_file_name())  # Add a column with the filename
+#    #     .withColumn("station",
+#    #                 regexp_extract(input_file_name(), "[^/]+(?=\.csv)", 0))  # Extract station name from filename
+#    #     .withColumn("year", regexp_extract(input_file_name(), "/(\d{4})/", 1))  # Extract the year from the file path
+#    # )
+#
+#    return final_df
 
 
 def write_result(df):
@@ -215,9 +215,9 @@ def task3(df):
 # Main block
 if __name__ == '__main__':
 
-    #df = get_df(ENTRY_POINT)
+    df = get_df(ENTRY_POINT)
 
-    df = read_csv(ENTRY_POINT)
+    #df = read_csv(ENTRY_POINT)
 
     #caching operations to improve time performance
     start_time = time.time()
