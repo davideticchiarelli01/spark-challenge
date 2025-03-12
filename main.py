@@ -11,14 +11,12 @@ import csv
 sc = SparkContext.getOrCreate()
 spark = SparkSession(sc)
 
+# ENTRY_POINT = "hdfs://localhost:9000/user/user/BDAchallenge2425"
+# OUTPUT_PATH = "/home/user/Downloads"
 ENTRY_POINT = "hdfs:///user/amircoli/BDAchallenge2324"
 OUTPUT_PATH = "/home/amircoli/Scrivania/BDA/spark2425/results/gruppo_3"
 
-#ENTRY_POINT = "hdfs://localhost:9000/user/user/BDAchallenge2425"
-#OUTPUT_PATH = "/home/user/Downloads"
-
 COLUMNS = ["LATITUDE", "LONGITUDE", "TMP", "WND", "REM"]
-
 
 def list_file_names(directory_path):
     file_status_objects = sc._gateway.jvm.org.apache.hadoop.fs.FileSystem.get(sc._jsc.hadoopConfiguration()).listStatus(
@@ -132,12 +130,13 @@ def task1(df):
         .orderBy("OCC", ascending=False)
         .withColumn("COORDS", lit("[(60,-135);(30,-90)]"))
         .limit(10)
+        .orderBy("TMP")
         .select("COORDS", "TMP", "OCC")
     )
 
     save_to_csv(result, "task1")
 
-    # write_result(result)
+    #write_result(result)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -227,7 +226,6 @@ if __name__ == '__main__':
     end_time = time.time()
     elapsed_time = end_time - start_time
     print("All caching operations have terminated in {:.2f} s.\n\n".format(elapsed_time))
-
 
     task1(df)
     task2(df)
